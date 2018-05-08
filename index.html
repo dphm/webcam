@@ -3,24 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <title>webcam</title>
-  <style>
-    #feed {
-      width: 320;
-      height: 240;
-    }
-
-    video, canvas { position: absolute; }
-    #input { z-index: 1; }
-    #output { z-index: 2; }
-  </style>
 </head>
 <body>
   <main>
-    <div id="feed">
-      <video autoplay width="320" height="240"></video>
-      <canvas id="input" width="320" height="240"></canvas>
-      <canvas id="output" width="320" height="240"></canvas>
-    </div>
+    <canvas width="320" height="240"></canvas>
   </main>
   <script type="text/javascript" src="./index.js"></script>
 </body>

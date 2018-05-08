@@ -1,22 +1,29 @@
 (async function() {
-  const video = document.querySelector('video');
-  const input = document.querySelector('canvas#input');
-  const output = document.querySelector('canvas#output');
-  const inputCtx = input.getContext('2d', { alpha: false });
-  const outputCtx = output.getContext('2d', { alpha: false });
+  const WIDTH = 320;
+  const HEIGHT = 240;
 
   const wasm = await fetch('webcam.gc.wasm');
   const bytes = await wasm.arrayBuffer();
   const module = await WebAssembly.instantiate(bytes);
   const mod = module.instance;
 
-  let byteSize = output.width * output.height * 4;
+  let byteSize = WIDTH * HEIGHT * 4;
   let pointer = mod.exports.alloc(byteSize);
   let imageBytes = new Uint8ClampedArray(mod.exports.memory.buffer, pointer, byteSize);
-  let img = new ImageData(imageBytes, output.width, output.height);
+  let img = new ImageData(imageBytes, WIDTH, HEIGHT);
+
+  const video = document.createElement('video');
+  const input = document.createElement('canvas');
+  const output = document.querySelector('canvas');
+  const inputCtx = input.getContext('2d', { alpha: false });
+  const outputCtx = output.getContext('2d', { alpha: false });
+
+  video.width = input.width = WIDTH;
+  video.height = input.height = HEIGHT;
 
   function handleSuccess(stream) {
     video.srcObject = stream;
+    video.play();
     drawStream();
   }
 
@@ -25,27 +32,16 @@
   }
 
   function drawStream() {
-    drawVideoFrameToCanvas();
-    drawImageDataToCanvas();
+    inputCtx.drawImage(video, 0, 0);
+    imageBytes.set(inputCtx.getImageData(0, 0, WIDTH, HEIGHT).data);
+
+    mod.exports.transform_grayscale(pointer, WIDTH, HEIGHT);
+    outputCtx.putImageData(img, 0, 0);
 
     requestAnimationFrame(drawStream);
   }
 
-  function drawVideoFrameToCanvas() {
-    inputCtx.drawImage(video, 0, 0, input.width, input.height);
-  }
-
-  function drawImageDataToCanvas() {
-    let imageData = inputCtx.getImageData(0, 0, input.width, input.height);
-    for (var i in imageData.data) {
-      imageBytes[i] = imageData.data[i];
-    }
-
-    mod.exports.transform_grayscale(pointer, output.width, output.height);
-    outputCtx.putImageData(img, 0, 0);
-  }
-
-  navigator.mediaDevices.getUserMedia({ video: true })
+  navigator.mediaDevices.getUserMedia({ video: { width: WIDTH, height: HEIGHT } })
     .then(handleSuccess)
     .catch(handleError);
 })();
